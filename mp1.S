@@ -68,6 +68,9 @@ mp1_ioctl_add:
         je fail_mem_allowcate 
         pushl %eax           # save "to pointer" to local:-4(%ebp) 
         movl 8(%ebp), %ecx   # fetch arg "from pointer" to %ecx
+        # check if "from pointer" is NULL
+        cmpl $0, %ecx
+        je fail_mem_copy
         # call mp1_copy_from_user: copy struct from user mem to kernal mem
         pushl $16            # arg size
         pushl %ecx           # arg "from pointer"
