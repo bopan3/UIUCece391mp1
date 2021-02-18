@@ -39,6 +39,7 @@ mp1_poke:
 	movl    vmem_base_addr(,1),%edx
 	movb    %cl,(%edx,%eax,1)
 	ret
+      
 # void mp1 rtc tasklet (unsigned long)
 #
 # Interface:
@@ -50,22 +51,26 @@ mp1_rtc_tasklet:
         pushl %ebp
         movl %esp,%ebp
         movl mp1_list_head,%edx
+  # check if we reach the end of the list
   tk_check_end:
         cmpl $0, %edx
         je tk_return
+  # decrete the COUNTDOEN field for 1
   tk_decre_countdown:
         movw COUNTDOWN(%edx),%ax
         addw $-1, %ax   
         jz tk_see_status           # go to "see status" if "count zero"mS
         movw %ax, COUNTDOWN(%edx) # just renew countdown if not "count zero"
         movl NEXT(%edx),%edx       # %edx point to the next block 
-        jmp tk_check_end           
+        jmp tk_check_end  
+  # check the status of the current blink struct         
   tk_see_status:
         movw STATUS(%edx),%ax
         cmpw $0, %ax     
         je tk_current_off
         cmpw $1, %ax     
         je tk_current_on
+  # renew the time parameters if the current statua is off and reached zero count
   tk_current_off:
         # renew COUNTDOWN and flip status
         movw $1, STATUS(%edx)
@@ -81,6 +86,7 @@ mp1_rtc_tasklet:
         popl %edx
         movl NEXT(%edx),%edx       # %edx point to the next block 
         jmp tk_check_end
+# renew the time parameters if the current statua is on and reached zero count
   tk_current_on:
         # renew COUNTDOWN and flip status
         movw $0, STATUS(%edx)
@@ -100,6 +106,7 @@ mp1_rtc_tasklet:
   tk_return:
         leave
 	ret
+
 # int mp1_ioctl (unsigned long arg, unsigned long cmd);
 #
 # Interface:
@@ -199,7 +206,6 @@ mp1_ioctl_add:
         leave
         ret 
 
-
 # mp1_blink_struct* help_locate(short location);
 #
 # Interface:
@@ -217,6 +223,7 @@ help_locate:
         movw 8(%ebp), %bx        # fetch arg "location" to %bx        
         movl mp1_list_head,%edx
         movl mp1_list_head,%ecx
+  # check if we reach the end of the list
   hp_check_end:
         cmpl $0, %edx 
         je hp_cannot_find
@@ -259,6 +266,7 @@ mp1_ioctl_remove:
         # discuss if the pointer is the head
         cmpl %ecx,%eax
         je rm_head_pointer
+# remove process if the element we want to remove is not pointed by head
   rm_not_head:
         # modify the linked list
         movl NEXT(%eax),%edx
@@ -272,6 +280,7 @@ mp1_ioctl_remove:
         xorl %eax, %eax       
         leave
         ret  
+# remove process if the element we want to remove is pointed by head
  rm_head_pointer:
         movl NEXT(%eax),%edx
         movl %edx,mp1_list_head
@@ -290,6 +299,7 @@ mp1_ioctl_remove:
         movl $-1,%eax
         leave
         ret        
+
 # int mp1 ioctl find(unsigned long arg)
 #
 # Interface:
@@ -422,11 +432,13 @@ mp1_ioctl_sync:
         movw %ax,STATUS(%edx)
          
         # call poke to renew display
+  # check the status of the current blinkstruct to decide which character to poke
   sy_see_status:
         cmpw $0, %ax     
         je sy_current_off
         cmpw $1, %ax     
         je sy_current_on
+# if current status is off, poke the off character 
   sy_current_off:
         # call mp1_poke
         xorl %eax, %eax
@@ -435,6 +447,7 @@ mp1_ioctl_sync:
         movb OFF_CHAR(%edx),%cl    # fetch "CHAR" to cl
         call mp1_poke
         jmp sy_success
+# if current status is on, poke the on character 
   sy_current_on:
         # call mp1_poke
         xorl %eax, %eax
@@ -454,8 +467,7 @@ mp1_ioctl_sync:
         movl $-1,%eax
         leave
         ret       
-        
-
+      
 /* The jump table for mp1_ioctl */
 jump_table:
 .long mp1_ioctl_add, mp1_ioctl_remove, mp1_ioctl_find, mp1_ioctl_sync
