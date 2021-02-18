@@ -231,23 +231,36 @@ mp1_ioctl_remove:
         cmpl $0,%eax       # %eax store the pointer for the struct
                            # %ecx store the pointer for previous struct 
         je rm_cannot_find  
+        
+        # discuss if the pointer is the head
+        cmpl %ecx,%eax
+        je rm_head_pointer
+  rm_not_head:
         # modify the linked list
         movl NEXT(%eax),%edx
- want_remove:
         movl %edx,NEXT(%ecx)
-
-        # free the mem for the removed struct 
-        cmpl $0,%eax
-        je rm_success
+        # free the mem for the removed struct
         # call mp1_free: free mem for copying the struct to kernal
         pushl %eax            # argument  "the pointer for the struct"
         call mp1_free     
         addl $4,%esp         # pop args 
- rm_success:
         # return 0 
         xorl %eax, %eax       
         leave
-        ret        
+        ret  
+ rm_head_pointer:
+        movl NEXT(%eax),%edx
+        movl %edx,mp1_list_head
+        # free the mem for the removed struct
+        # call mp1_free: free mem for copying the struct to kernal
+        pushl %eax            # argument  "the pointer for the struct"
+        call mp1_free     
+        addl $4,%esp         # pop args 
+        # return 0 
+        xorl %eax, %eax       
+        leave
+        ret 
+
  rm_cannot_find:
         # return -1
         movl $-1,%eax
