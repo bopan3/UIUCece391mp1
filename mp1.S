@@ -308,7 +308,7 @@ mp1_ioctl_remove:
 #               fail: return -1
 # Registers: Clobbers EAX EDX ECX         
 mp1_ioctl_find:
-        # call mp1_malloc: allocate mem for copying the struct to kernal
+        /* call mp1_malloc: allocate mem for copying the struct to kernal */
         pushl $16            # arg size
         call mp1_malloc     
         addl $4,%esp         # pop args 
@@ -438,7 +438,7 @@ mp1_ioctl_sync:
         je sy_current_off
         cmpw $1, %ax     
         je sy_current_on
-# if current status is off, poke the off character 
+/* if current status is off, poke the off character */ 
   sy_current_off:
         # call mp1_poke
         xorl %eax, %eax
@@ -447,7 +447,7 @@ mp1_ioctl_sync:
         movb OFF_CHAR(%edx),%cl    # fetch "CHAR" to cl
         call mp1_poke
         jmp sy_success
-# if current status is on, poke the on character 
+/* if current status is on, poke the on character */
   sy_current_on:
         # call mp1_poke
         xorl %eax, %eax
