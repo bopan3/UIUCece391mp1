@@ -39,7 +39,13 @@ mp1_poke:
 	movl    vmem_base_addr(,1),%edx
 	movb    %cl,(%edx,%eax,1)
 	ret
-
+# void mp1 rtc tasklet (unsigned long)
+#
+# Interface:
+#    Inputs: no       
+#   Outputs:  traverse the linked list, refresh the time property of all structs,
+#              and call poke if need switch the character to be displayed for certain location
+# Registers: Clobbers EAX 
 mp1_rtc_tasklet:
         pushl %ebp
         movl %esp,%ebp
@@ -94,7 +100,13 @@ mp1_rtc_tasklet:
   tk_return:
         leave
 	ret
-
+# int mp1_ioctl (unsigned long arg, unsigned long cmd);
+#
+# Interface:
+#    Inputs: arg (l）
+#            cmd (w)         
+#   Outputs:  jump to one of the inctl function
+# Registers: Clobbers EAX 
 mp1_ioctl:
         pushl %ebp
         movl %esp,%ebp
@@ -111,6 +123,12 @@ mp1_ioctl:
         leave
         ret
 
+# int mp1 ioctl add(unsigned long arg)
+#
+# Interface:
+#    Inputs: a user-level pointer to a mp1 blink struct structure  
+#   Outputs:  copy this structure to kernal, initialize its time property, add it to linked list
+# Registers: Clobbers EAX EDX ECX 
 mp1_ioctl_add:
         # call mp1_malloc: allocate mem for copying the struct to kernal
         pushl $16            # arg size
@@ -182,7 +200,7 @@ mp1_ioctl_add:
         ret 
 
 
-# mp1_blink_struct* (short location);
+# mp1_blink_struct* help_locate(short location);
 #
 # Interface:
 #    Inputs: arg1: location (w)
@@ -221,7 +239,13 @@ help_locate:
         leave
         ret
 
-
+# int mp1 ioctl remove(unsigned long arg)
+#
+# Interface:
+#    Inputs: an integer location
+#   Outputs:   remove the struct with the same location from the linked list, free the mem for it
+#               fail: return -1
+# Registers: Clobbers EAX EDX ECX 
 mp1_ioctl_remove:
         movl 8(%ebp), %ecx   # fetch arg "location" to %ecx   
         # call help_locate: to get pointer for the struct
@@ -266,7 +290,13 @@ mp1_ioctl_remove:
         movl $-1,%eax
         leave
         ret        
-        
+# int mp1 ioctl find(unsigned long arg)
+#
+# Interface:
+#    Inputs: a pointer to a mp1 blink struct in user space
+#   Outputs:   copy the blink struct with the same locaiton in kernal to the user space's structure
+#               fail: return -1
+# Registers: Clobbers EAX EDX ECX         
 mp1_ioctl_find:
         # call mp1_malloc: allocate mem for copying the struct to kernal
         pushl $16            # arg size
@@ -349,7 +379,13 @@ mp1_ioctl_find:
 
         leave
 	ret
-
+# int mp1 ioctl sync(unsigned long arg)
+#
+# Interface:
+#    Inputs: two two-byte unsigned short integers packed in a long int, upper 16bit is the locaiton of first, lower 16bits for second
+#   Outputs:    copy the timing information of the first to the second
+#               fail: return -1
+# Registers: Clobbers EAX EDX ECX  
 mp1_ioctl_sync:
         movl 8(%ebp),%eax  # fetch "first|second" argument to %eax
         pushw %ax          # save "second" to local:-2(%ebp) 
